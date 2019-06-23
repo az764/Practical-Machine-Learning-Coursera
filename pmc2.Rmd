@@ -1,0 +1,111 @@
+---
+title: "PML"
+output: html_document
+---
+
+# JHU - Practical Machine Learning Week 4 Assignment
+## Abdulaziz Banafunzi - 23/06/19
+
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+#Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+#Loading the Data
+
+First we will be loading the data.
+
+```{r,echo=T,message=F,warning=F}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(rattle)
+library(e1071)
+
+trurl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+tsurl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+dttrain <- read.csv(url(trurl))
+dttest <- read.csv(url(tsurl))
+set.seed(12345)
+
+```
+
+#Cleaning Data
+
+We will now be cleaning the data. This invloves excluding the NA terms from the dataset. We will only be keeping the variables that we need for the analysis.
+
+```{r,echo=T,message=F,warning=F}
+
+fts <- names(dttest[,colSums(is.na(dttest)) == 0])
+dttrain <- dttrain[,c(fts [8:59],"classe")]
+dttest <- dttest[,c(fts [8:59],"problem_id")]
+
+```
+
+#Data Partition
+
+We will now split the data set into a training and test set. 60% of data will be the training data and 40% test data. This ratio has been recommended in the course.
+
+```{r,echo=T,message=F,warning=F}
+inTrain <- createDataPartition(dttrain$classe, p=0.6, list=FALSE)
+training <- dttrain[inTrain,]
+testing <- dttrain[-inTrain,]
+
+```
+
+#Decision Tree Model
+
+Next, we will build a decision tree model and assess how accurate the model is.
+
+```{r,echo=T,message=F,warning=F}
+dectree <- rpart(classe ~ ., data = training, method="class")
+fancyRpartPlot(dectree)
+```
+
+Now that we have built a model we can now use this to predict.
+
+#Random Forest
+
+Next we will build a Random Forest model.
+
+```{r,echo=T,message=F,warning=F}
+randf <- randomForest(classe ~ ., data = training, ntree = 1000)
+
+```
+
+We can now predict using this model
+```{r,echo=T,message=F,warning=F}
+prediction <- predict(randf, testing, type = "class")
+confusionMatrix(prediction, testing$classe)
+```
+
+#Test set predictions
+
+Now that we have built the decision tree and random forest models, we can now apply these models to the test data.
+
+First we will predict using the decision tree model
+```{r,echo=T,message=F,warning=F}
+predictDT <- predict(dectree, dttest, type = "class")
+predictDT
+
+```
+
+Next we will predict using the random forest model
+```{r,echo=T,message=F,warning=F}
+predictRF <- predict(randf, dttest, type = "class")
+predictRF
+```
+
